@@ -1,28 +1,49 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"time"
+
+	"github.com/tamil/Microservices/handlers"
 )
 
 func main() {
+	l := log.New(os.Stdout, "product-api", log.LstdFlags)
+	hh := handlers.NewHello(l)
+	gh := handlers.NewGoodbye(l)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Hello Tamilarasan")
-		d, _ := ioutil.ReadAll(r.Body)
+	sm := http.NewServeMux()
+	sm.Handle("/", hh)
+	sm.Handle("/goodbye", gh)
 
-		//	log.Printf("Data %s\n", d) ---> Request
-		fmt.Fprintf(w, "Hello  %s", d) // ---->Respons
-	})
+	s := &http.Serve{
+		Addr:         ":9090",
+		Handler:      sm,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+	}
 
-	http.HandleFunc("/bye", func(http.ResponseWriter, *http.Request) {
+	go func ()  {
+		err := s.ListenAndServe()
+		if err != nil{
+			l.Fatal(err)
+		}
+		
+	}()
 
-		log.Println("goodbye Tamilarasan")
+	sigChan := make(chan os .Signa)
+	signal.Notify(sigChan,os.Interrupt)
+	signal.Notify(sigChan,os.Kill)
 
-	})
+	sig := <- sigChan
+	l.Println("Received terminate, gracful shutdown"sig)
 
-	http.ListenAndServe(":9000", nil)
+	tc, _ :=context.WithTimeout(context.Background(), 30*time.Second)
+	s.Shutdown(tc)
+
+	http.ListenAndServe()
 
 }
